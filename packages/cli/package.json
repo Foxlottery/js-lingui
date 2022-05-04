@@ -1,6 +1,6 @@
 {
-  "name": "@lingui/cli",
-  "version": "3.13.2",
+  "name": "@foxlottery/lingui-cli-deepl-version",
+  "version": "3.13.33",
   "description": "CLI for working wit message catalogs",
   "keywords": [
     "cli",
@@ -48,6 +48,7 @@
     "cli-table": "0.3.6",
     "commander": "^6.1.0",
     "date-fns": "^2.16.1",
+    "deepl": "^1.0.13",
     "fs-extra": "^9.0.1",
     "fuzzaldrin": "^2.1.0",
     "glob": "^7.1.4",

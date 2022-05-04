@@ -6,6 +6,7 @@ import chalk from "chalk"
 import glob from "glob"
 import micromatch from "micromatch"
 import normalize from "normalize-path"
+import translate from "deepl"
 
 import { LinguiConfig, OrderBy, FallbackLocales } from "@lingui/conf"
 
@@ -20,6 +21,37 @@ const NAME = "{name}"
 const LOCALE = "{locale}"
 const LOCALE_SUFFIX_RE = /\{locale\}.*$/
 const PATHSEP = "/" // force posix everywhere
+
+const deeplLocales = [
+  'BG',
+  'CS',
+  'DA',
+  'DE',
+  'EL',
+  'EN-GB',
+  'EN-US',
+  'EN',
+  'ES',
+  'ET',
+  'FI',
+  'FR',
+  'HU',
+  'IT',
+  'JA',
+  'LT',
+  'LV',
+  'NL',
+  'PL',
+  'PT-PT',
+  'PT-BR',
+  'PT',
+  'RO',
+  'RU',
+  'SK',
+  'SL',
+  'SV',
+  'ZH',
+]
 
 type MessageOrigin = [string, number?]
 
@@ -63,6 +95,7 @@ type CollectOptions = MakeOptions | MakeTemplateOptions
 
 export type MergeOptions = {
   overwrite: boolean
+  deepl: boolean
   files?: string[]
 }
 
@@ -102,8 +135,9 @@ export class Catalog {
     const nextCatalog = await this.collect(options)
     const prevCatalogs = this.readAll()
 
-    const catalogs = this.merge(prevCatalogs, nextCatalog, {
+    const catalogs = await this.merge(prevCatalogs, nextCatalog, {
       overwrite: options.overwrite,
+      deepl: options.deepl,
       files: options.files,
     })
 
@@ -203,7 +237,7 @@ export class Catalog {
   ) {
     const nextKeys = R.keys(nextCatalog).map(String)
 
-    return R.mapObjIndexed((prevCatalog, locale) => {
+    return R.mapObjIndexed(async (prevCatalog, locale) => {
       const prevKeys = R.keys(prevCatalog).map(String)
 
       const newKeys = R.difference(nextKeys, prevKeys)
@@ -221,15 +255,29 @@ export class Catalog {
       )
 
       // Merge translations from previous catalog
-      const mergedMessages = mergeKeys.map((key) => {
+      const mergedMessages = await Promise.all(mergeKeys.map(async (key) => {
         const updateFromDefaults =
           this.config.sourceLocale === locale &&
           (prevCatalog[key].translation === prevCatalog[key].message ||
             options.overwrite)
 
-        const translation = updateFromDefaults
+        let translation = updateFromDefaults
           ? nextCatalog[key].message || key
           : prevCatalog[key].translation
+
+        if (options.deepl) {
+          const { DEEPL_AUTH_KEY } = process.env
+          if (DEEPL_AUTH_KEY) {
+            const locale = this.config.sourceLocale.toUpperCase()
+            if (deeplLocales.includes(locale)) {
+              if (!translation) {
+                translation = await this.getDeeplTranslation(locale as translate.DeeplLanguages, key)
+              }
+            }
+          } else {
+            console.error(`Please set environment value DEEPL_AUTH_KEY `)
+          }
+        }
 
         return {
           [key]: {
@@ -237,7 +285,10 @@ export class Catalog {
             ...R.omit(["obsolete, translation"], nextCatalog[key]),
           },
         }
-      })
+      }))
+
+      console.log("mergedMessages")
+      console.log(mergedMessages)
 
       // Mark all remaining translations as obsolete
       // Only if *options.files* is not provided
@@ -250,6 +301,23 @@ export class Catalog {
 
       return R.mergeAll([newMessages, ...mergedMessages, ...obsoleteMessages])
     }, prevCatalogs)
+  }
+
+  async getDeeplTranslation(locale: translate.DeeplLanguages, key: string) {
+    let translation;
+    await translate({
+      text: key,
+      target_lang: locale,
+      auth_key: process.env.DEEPL_AUTH_KEY,
+      free_api: true
+    })
+    .then(async result => {
+        translation = await result.data.translations[0]["text"] as unknown as string
+    })
+    .catch(error => {
+        console.error(error)
+    });
+    return translation;
   }
 
   getTranslations(locale: string, options: GetTranslationsOptions) {
