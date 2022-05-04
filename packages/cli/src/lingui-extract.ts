@@ -19,7 +19,8 @@ export type CliExtractOptions = {
   overwrite: boolean
   locale: string
   prevFormat: string | null
-  watch?: boolean
+  watch?: boolean, 
+  deepl: boolean
 }
 
 export default async function command(
@@ -99,6 +100,7 @@ if (require.main === module) {
       "Convert from previous format of message catalogs"
     )
     .option("--watch", "Enables Watch Mode")
+    .option("--deepl", "Enter automatically translated words")
     // Obsolete options
     .option(
       "--babelOptions",
@@ -160,6 +162,7 @@ if (require.main === module) {
       locale: program.locale,
       configPath: program.config || process.env.LINGUI_CONFIG,
       watch: program.watch || false,
+      deepl: program.deepl || false,
       files: filePath?.length ? filePath : undefined,
       prevFormat,
     })

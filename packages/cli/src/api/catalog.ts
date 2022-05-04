@@ -63,6 +63,7 @@ type CollectOptions = MakeOptions | MakeTemplateOptions
 
 export type MergeOptions = {
   overwrite: boolean
+  deepl: boolean
   files?: string[]
 }
 
@@ -231,6 +232,10 @@ export class Catalog {
           ? nextCatalog[key].message || key
           : prevCatalog[key].translation
 
+        console.log(this.config.sourceLocale)
+        console.log(options.deepl)
+        console.log(key)
+        console.log(process.env.DEEPL_AUTH_KEY)
         return {
           [key]: {
             translation,
