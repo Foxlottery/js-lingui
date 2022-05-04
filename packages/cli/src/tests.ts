@@ -23,6 +23,7 @@ export const defaultMakeOptions: MakeOptions = {
   locale: null,
   prevFormat: null,
   configPath: null,
+  deepl: false,
   orderBy: "messageId",
 }
 
@@ -34,6 +35,7 @@ export const defaultMakeTemplateOptions: MakeTemplateOptions = {
 
 export const defaultMergeOptions: MergeOptions = {
   overwrite: false,
+  deepl: false,
 }
 
 export const makeCatalog = (config = {}) => {
